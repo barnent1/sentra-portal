@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createApiHandler, createSuccessResponse } from '@/lib/api/base-handler';
+import { createApiHandler, ApiResponseBuilder } from '@/lib/api/base-handler';
 import { withValidation, projectSchemas } from '@/lib/middleware/validation';
 import { withLogging } from '@/lib/middleware/logger';
 
@@ -9,20 +9,16 @@ export const GET = withLogging(
     { query: projectSchemas.query },
     createApiHandler(async (request: NextRequest, context: any, validated: any) => {
       const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'desc', ...filters } = validated.query;
-      const offset = (page - 1) * limit;
 
       // TODO: Implement project fetching logic with pagination, sorting, and filtering
       const projects: any[] = [];
       const total = 0;
 
-      return createSuccessResponse(
-        { projects },
-        {
-          page,
-          limit,
-          total,
-          hasMore: offset + limit < total
-        }
+      return ApiResponseBuilder.paginated(
+        projects,
+        page,
+        limit,
+        total
       );
     })
   )
@@ -43,7 +39,11 @@ export const POST = withLogging(
         updatedAt: new Date().toISOString()
       };
 
-      return createSuccessResponse({ project });
+      // Return created response with location header
+      return ApiResponseBuilder.created(
+        project,
+        `/api/projects/${project.id}`
+      );
     })
   )
 );

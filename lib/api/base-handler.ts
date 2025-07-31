@@ -1,48 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withErrorHandler } from '@/lib/middleware/error-handler';
+import { ApiResponseBuilder } from './response-standards';
 
-export interface ApiResponse<T = any> {
-  status: 'success' | 'error';
-  data?: T;
-  error?: string;
-  code?: string;
-  metadata?: {
-    page?: number;
-    limit?: number;
-    total?: number;
-    hasMore?: boolean;
-  };
-}
+// Re-export response standards
+export { ApiResponseBuilder, HttpStatus, ErrorCode } from './response-standards';
+export type { ApiResponse } from './response-standards';
 
-export function createSuccessResponse<T>(
-  data: T,
-  metadata?: ApiResponse['metadata']
-): ApiResponse<T> {
-  return {
-    status: 'success',
-    data,
-    ...(metadata && { metadata })
-  };
-}
-
-export function createErrorResponse(
-  error: string,
-  code?: string
-): ApiResponse {
-  return {
-    status: 'error',
-    error,
-    ...(code && { code })
-  };
-}
-
-// Create a typed API handler
+// Create a typed API handler that automatically uses response standards
 export function createApiHandler<T = any>(
-  handler: (request: NextRequest, context?: any) => Promise<ApiResponse<T>>
+  handler: (request: NextRequest, context?: any) => Promise<NextResponse | T>
 ) {
   return withErrorHandler(async (request: NextRequest, context?: any) => {
-    const response = await handler(request, context);
-    return NextResponse.json(response);
+    const result = await handler(request, context);
+    
+    // If already a NextResponse, return as is
+    if (result instanceof NextResponse) {
+      return result;
+    }
+    
+    // Otherwise, wrap in success response
+    return ApiResponseBuilder.success(result);
   });
 }
 
@@ -93,4 +70,30 @@ export function getFilterParams(request: NextRequest, allowedFilters: string[]) 
   });
 
   return filters;
+}
+
+// Deprecated - use ApiResponseBuilder instead
+export function createSuccessResponse<T>(
+  data: T,
+  metadata?: any
+): any {
+  console.warn('createSuccessResponse is deprecated. Use ApiResponseBuilder.success() instead.');
+  return {
+    status: 'success',
+    data,
+    ...(metadata && { metadata })
+  };
+}
+
+// Deprecated - use ApiResponseBuilder instead  
+export function createErrorResponse(
+  error: string,
+  code?: string
+): any {
+  console.warn('createErrorResponse is deprecated. Use ApiResponseBuilder.error() instead.');
+  return {
+    status: 'error',
+    error,
+    ...(code && { code })
+  };
 }

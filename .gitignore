@@ -177,3 +177,10 @@ Desktop.ini
 *.sw?
 
 /app/generated/prisma
+
+# Database backups
+/backups/
+*.backup
+*.sql.gz
+*.db.gz
+dev.db.before-restore
