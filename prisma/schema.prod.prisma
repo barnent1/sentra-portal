@@ -1,0 +1,12 @@
+// Production Prisma schema file for PostgreSQL
+// Use this schema for production deployments
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
