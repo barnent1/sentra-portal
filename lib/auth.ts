@@ -1,14 +1,16 @@
 import { NextAuthOptions } from "next-auth"
-import { PrismaAdapter } from "@auth/prisma-adapter"
+import { DrizzleAdapter } from "@/lib/auth-adapter"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 import GitHubProvider from "next-auth/providers/github"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
-import { prisma } from "@/lib/prisma"
+import { db } from "@/lib/db"
+import { users } from "@/db/schema"
+import { eq } from "drizzle-orm"
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: DrizzleAdapter(),
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
@@ -36,11 +38,11 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials")
         }
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email
-          }
-        })
+        const user = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, credentials.email))
+          .then((res) => res[0])
 
         if (!user || !user.password) {
           throw new Error("Invalid credentials")

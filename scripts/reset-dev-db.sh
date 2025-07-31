@@ -12,10 +12,10 @@ read
 echo "Resetting development database..."
 
 # Reset the database
-npx prisma migrate reset --force
+npm run db:reset
 
 # Seed the database (if seed script exists)
-if [ -f "prisma/seed.ts" ]; then
+if [ -f "db/seed.ts" ]; then
     echo "Seeding database..."
     npm run db:seed
 fi

@@ -80,17 +80,21 @@ export function CacheInvalidate(patterns: string | string[]) {
 
 // Example usage:
 /*
+import { db } from "@/lib/db"
+import { users } from "@/db/schema"
+import { eq } from "drizzle-orm"
+
 class UserService {
   @Cacheable({ ttl: 3600, keyPrefix: "user" })
   async getUser(id: string) {
     // Expensive database query
-    return await prisma.user.findUnique({ where: { id } })
+    return await db.select().from(users).where(eq(users.id, id)).then(res => res[0])
   }
 
   @CacheInvalidate("cache:user:*")
   async updateUser(id: string, data: any) {
     // Update user and invalidate cache
-    return await prisma.user.update({ where: { id }, data })
+    return await db.update(users).set(data).where(eq(users.id, id))
   }
 }
 */

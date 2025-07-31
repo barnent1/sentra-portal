@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { prisma } from "@/lib/prisma"
+import { db } from "@/lib/db"
+import { users, verificationTokens } from "@/db/schema"
+import { eq } from "drizzle-orm"
 import { hashPassword, generateVerificationToken } from "@/lib/auth-utils"
 import { sendVerificationEmail } from "@/lib/email"
 import { checkRateLimit } from "@/lib/redis"
@@ -37,9 +39,11 @@ export async function POST(req: NextRequest) {
     const { email, password, name } = validation.data
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    })
+    const existingUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .then((res) => res[0])
 
     if (existingUser) {
       return NextResponse.json(
@@ -55,21 +59,25 @@ export async function POST(req: NextRequest) {
     const { token, hashedToken } = generateVerificationToken()
 
     // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-      },
+    const userId = crypto.randomUUID()
+    await db.insert(users).values({
+      id: userId,
+      email,
+      password: hashedPassword,
+      name,
     })
+    
+    const user = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .then((res) => res[0])
 
     // Create verification token
-    await prisma.verificationToken.create({
-      data: {
-        identifier: user.email,
-        token: hashedToken,
-        expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-      },
+    await db.insert(verificationTokens).values({
+      identifier: user.email,
+      token: hashedToken,
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
     })
 
     // Send verification email

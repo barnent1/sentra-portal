@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { withAuth, AuthenticatedRequest } from "@/lib/middleware/auth"
-import { prisma } from "@/lib/prisma"
+import { db } from "@/lib/db"
+import { users } from "@/db/schema"
+import { eq } from "drizzle-orm"
 
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
   try {
@@ -11,18 +13,19 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       )
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        image: true,
-        emailVerified: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    })
+    const user = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        image: users.image,
+        emailVerified: users.emailVerified,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
+      .from(users)
+      .where(eq(users.id, req.user.userId))
+      .then((res) => res[0])
 
     if (!user) {
       return NextResponse.json(
@@ -53,22 +56,27 @@ export const PUT = withAuth(async (req: AuthenticatedRequest) => {
     const body = await req.json()
     const { name, image } = body
 
-    const updatedUser = await prisma.user.update({
-      where: { id: req.user.userId },
-      data: {
+    await db
+      .update(users)
+      .set({
         name,
         image,
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        image: true,
-        emailVerified: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    })
+      })
+      .where(eq(users.id, req.user.userId))
+
+    const updatedUser = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        image: users.image,
+        emailVerified: users.emailVerified,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
+      .from(users)
+      .where(eq(users.id, req.user.userId))
+      .then((res) => res[0])
 
     return NextResponse.json({ user: updatedUser })
   } catch (error) {

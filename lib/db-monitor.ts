@@ -1,4 +1,5 @@
-import { prisma } from "./prisma"
+import { db } from "./db"
+import { sql } from "drizzle-orm"
 
 // Database monitoring utilities for connection pool health
 
@@ -25,16 +26,16 @@ export async function getConnectionPoolStats(): Promise<ConnectionPoolStats | nu
 
   try {
     // This is a PostgreSQL-specific query
-    const result = await prisma.$queryRaw<any[]>`
+    const result = await db.execute<any>(sql`
       SELECT 
         numbackends as active,
         (SELECT setting::int FROM pg_settings WHERE name = 'max_connections') as max_connections
       FROM pg_stat_database 
       WHERE datname = current_database()
-    `
+    `)
 
-    if (result.length > 0) {
-      const stats = result[0]
+    if (result.rows && result.rows.length > 0) {
+      const stats = result.rows[0]
       const maxConnections = stats.max_connections
       const active = stats.active
 
@@ -59,7 +60,7 @@ export async function checkDatabaseHealth(): Promise<DatabaseHealth> {
 
   try {
     // Simple health check query
-    await prisma.$queryRaw`SELECT 1`
+    await db.execute(sql`SELECT 1`)
     
     const latency = Date.now() - startTime
     

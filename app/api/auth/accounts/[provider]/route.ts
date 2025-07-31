@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { withAuth, AuthenticatedRequest } from "@/lib/middleware/auth"
-import { prisma } from "@/lib/prisma"
+import { db } from "@/lib/db"
+import { users, accounts } from "@/db/schema"
+import { eq, and } from "drizzle-orm"
 
 interface RouteParams {
   params: Promise<{
@@ -21,22 +23,26 @@ export const DELETE = withAuth(async (req: AuthenticatedRequest, { params }: Rou
     const { provider } = await params
 
     // Check if user has other sign-in methods
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.userId },
-      include: {
-        accounts: true,
-      },
-    })
-
+    const user = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, req.user.userId))
+      .then((res) => res[0])
+    
     if (!user) {
       return NextResponse.json(
         { error: "User not found" },
         { status: 404 }
       )
     }
+    
+    const userAccounts = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.userId, req.user.userId))
 
     // Ensure user has at least one sign-in method
-    if (user.accounts.length <= 1 && !user.password) {
+    if (userAccounts.length <= 1 && !user.password) {
       return NextResponse.json(
         { error: "Cannot disconnect the only sign-in method. Please set a password first." },
         { status: 400 }
@@ -44,12 +50,14 @@ export const DELETE = withAuth(async (req: AuthenticatedRequest, { params }: Rou
     }
 
     // Delete the OAuth account
-    await prisma.account.deleteMany({
-      where: {
-        userId: req.user.userId,
-        provider,
-      },
-    })
+    await db
+      .delete(accounts)
+      .where(
+        and(
+          eq(accounts.userId, req.user.userId),
+          eq(accounts.provider, provider)
+        )
+      )
 
     return NextResponse.json({
       message: `${provider} account disconnected successfully`,

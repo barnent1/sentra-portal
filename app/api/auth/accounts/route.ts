@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { withAuth, AuthenticatedRequest } from "@/lib/middleware/auth"
-import { prisma } from "@/lib/prisma"
+import { db } from "@/lib/db"
+import { accounts } from "@/db/schema"
+import { eq } from "drizzle-orm"
 
 // Get connected OAuth accounts
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
@@ -12,16 +14,16 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
       )
     }
 
-    const accounts = await prisma.account.findMany({
-      where: { userId: req.user.userId },
-      select: {
-        provider: true,
-        providerAccountId: true,
-        createdAt: true,
-      },
-    })
+    const userAccounts = await db
+      .select({
+        provider: accounts.provider,
+        providerAccountId: accounts.providerAccountId,
+        createdAt: accounts.createdAt,
+      })
+      .from(accounts)
+      .where(eq(accounts.userId, req.user.userId))
 
-    return NextResponse.json({ accounts })
+    return NextResponse.json({ accounts: userAccounts })
   } catch (error) {
     console.error("Get accounts error:", error)
     return NextResponse.json(

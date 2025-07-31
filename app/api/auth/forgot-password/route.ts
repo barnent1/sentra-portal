@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { prisma } from "@/lib/prisma"
+import { db } from "@/lib/db"
+import { users, passwordResets } from "@/db/schema"
+import { eq, and, gt } from "drizzle-orm"
 import { generateSecureToken } from "@/lib/auth-utils"
 import { sendPasswordResetEmail } from "@/lib/email"
 import { checkRateLimit } from "@/lib/redis"
@@ -35,9 +37,11 @@ export async function POST(req: NextRequest) {
     const { email } = validation.data
 
     // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email },
-    })
+    const user = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .then((res) => res[0])
 
     // Always return success even if user doesn't exist (security best practice)
     if (!user) {
@@ -48,13 +52,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if there's an existing unexpired reset token
-    const existingReset = await prisma.passwordReset.findFirst({
-      where: {
-        userId: user.id,
-        expires: { gt: new Date() },
-        used: false,
-      },
-    })
+    const existingReset = await db
+      .select()
+      .from(passwordResets)
+      .where(
+        and(
+          eq(passwordResets.userId, user.id),
+          gt(passwordResets.expires, new Date()),
+          eq(passwordResets.used, false)
+        )
+      )
+      .then((res) => res[0])
 
     if (existingReset) {
       // Don't send another email if there's a valid token
@@ -68,12 +76,12 @@ export async function POST(req: NextRequest) {
     const token = generateSecureToken()
 
     // Create password reset record
-    await prisma.passwordReset.create({
-      data: {
-        token,
-        userId: user.id,
-        expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
-      },
+    await db.insert(passwordResets).values({
+      id: crypto.randomUUID(),
+      token,
+      userId: user.id,
+      expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+      used: false,
     })
 
     // Send reset email

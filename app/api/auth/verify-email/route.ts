@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import crypto from "crypto"
-import { prisma } from "@/lib/prisma"
+import { db } from "@/lib/db"
+import { users, verificationTokens } from "@/db/schema"
+import { eq } from "drizzle-orm"
 
 const verifySchema = z.object({
   token: z.string(),
@@ -25,9 +27,11 @@ export async function POST(req: NextRequest) {
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex")
 
     // Find the verification token
-    const verificationToken = await prisma.verificationToken.findUnique({
-      where: { token: hashedToken },
-    })
+    const verificationToken = await db
+      .select()
+      .from(verificationTokens)
+      .where(eq(verificationTokens.token, hashedToken))
+      .then((res) => res[0])
 
     if (!verificationToken) {
       return NextResponse.json(
@@ -39,9 +43,9 @@ export async function POST(req: NextRequest) {
     // Check if token has expired
     if (verificationToken.expires < new Date()) {
       // Delete expired token
-      await prisma.verificationToken.delete({
-        where: { token: hashedToken },
-      })
+      await db
+        .delete(verificationTokens)
+        .where(eq(verificationTokens.token, hashedToken))
       
       return NextResponse.json(
         { error: "Verification token has expired" },
@@ -50,15 +54,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Update user as verified
-    await prisma.user.update({
-      where: { email: verificationToken.identifier },
-      data: { emailVerified: new Date() },
-    })
+    await db
+      .update(users)
+      .set({ emailVerified: new Date() })
+      .where(eq(users.email, verificationToken.identifier))
 
     // Delete the used token
-    await prisma.verificationToken.delete({
-      where: { token: hashedToken },
-    })
+    await db
+      .delete(verificationTokens)
+      .where(eq(verificationTokens.token, hashedToken))
 
     return NextResponse.json(
       { message: "Email verified successfully" },

@@ -13,12 +13,8 @@ if [ -z "$DATABASE_URL" ]; then
     exit 1
 fi
 
-# Generate Prisma client with production schema
-echo "Generating Prisma client..."
-npx prisma generate --schema=./prisma/schema.prod.prisma
-
 # Run migrations
 echo "Running database migrations..."
-npx prisma migrate deploy --schema=./prisma/schema.prod.prisma
+NODE_ENV=production npm run db:migrate:prod
 
 echo "Migrations completed successfully!"
