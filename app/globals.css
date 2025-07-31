@@ -66,4 +66,21 @@
   .no-transitions * {
     @apply !transition-none;
   }
+  
+  /* Shimmer effect for skeleton loaders */
+  .skeleton-shimmer {
+    @apply relative overflow-hidden;
+  }
+  
+  .skeleton-shimmer::after {
+    @apply absolute inset-0 -translate-x-full;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--muted-foreground) / 0.05),
+      transparent
+    );
+    content: "";
+    animation: shimmer 2s infinite;
+  }
 }
