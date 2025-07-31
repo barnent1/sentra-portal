@@ -9,6 +9,8 @@ declare module "next-auth" {
       name: string | null
       image: string | null
     } & DefaultSession["user"]
+    accessToken: string
+    refreshToken: string
   }
 
   interface User extends DefaultUser {
@@ -24,5 +26,7 @@ declare module "next-auth/jwt" {
     picture: string | null
     accessToken?: string
     refreshToken?: string
+    provider?: string
+    providerAccountId?: string
   }
 }
