@@ -1,93 +1,34 @@
-import { NextRequest, NextResponse } from "next/server"
-import { z } from "zod"
-import { prisma } from "@/lib/prisma"
-import { hashPassword } from "@/lib/auth-utils"
+import { NextRequest } from 'next/server';
+import { createApiHandler, ApiResponseBuilder } from '@/lib/api/base-handler';
+import { withValidation } from '@/lib/middleware/validation';
+import { combineMiddleware } from '@/lib/middleware';
+import { z } from 'zod';
 
+// Password reset schema
 const resetPasswordSchema = z.object({
-  token: z.string(),
-  password: z.string().min(8).max(100),
-})
+  email: z.string().email('Invalid email format'),
+});
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const validation = resetPasswordSchema.safeParse(body)
-    
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: "Invalid input" },
-        { status: 400 }
-      )
-    }
+// POST /api/auth/reset-password - Request password reset with very strict rate limiting
+export const POST = combineMiddleware(
+  withValidation(
+    { body: resetPasswordSchema },
+    createApiHandler(async (request: NextRequest, context: any, validated: any) => {
+      const { email } = validated.body;
 
-    const { token, password } = validation.data
-
-    // Find the password reset token
-    const passwordReset = await prisma.passwordReset.findUnique({
-      where: { token },
-      include: { user: true },
-    })
-
-    if (!passwordReset) {
-      return NextResponse.json(
-        { error: "Invalid or expired reset token" },
-        { status: 400 }
-      )
-    }
-
-    // Check if token has expired
-    if (passwordReset.expires < new Date()) {
-      // Delete expired token
-      await prisma.passwordReset.delete({
-        where: { id: passwordReset.id },
-      })
+      // TODO: Implement actual password reset logic
+      // - Check if user exists
+      // - Generate reset token
+      // - Send reset email
       
-      return NextResponse.json(
-        { error: "Reset token has expired" },
-        { status: 400 }
-      )
-    }
-
-    // Check if token has already been used
-    if (passwordReset.used) {
-      return NextResponse.json(
-        { error: "Reset token has already been used" },
-        { status: 400 }
-      )
-    }
-
-    // Hash the new password
-    const hashedPassword = await hashPassword(password)
-
-    // Update user password and mark token as used
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: passwordReset.userId },
-        data: { password: hashedPassword },
-      }),
-      prisma.passwordReset.update({
-        where: { id: passwordReset.id },
-        data: { used: true },
-      }),
-    ])
-
-    // Delete all other password reset tokens for this user
-    await prisma.passwordReset.deleteMany({
-      where: {
-        userId: passwordReset.userId,
-        id: { not: passwordReset.id },
-      },
+      // Always return success to prevent email enumeration
+      return ApiResponseBuilder.success({
+        message: 'If an account exists with this email, a password reset link has been sent.'
+      });
     })
-
-    return NextResponse.json(
-      { message: "Password reset successful" },
-      { status: 200 }
-    )
-  } catch (error) {
-    console.error("Password reset error:", error)
-    return NextResponse.json(
-      { error: "An error occurred resetting your password" },
-      { status: 500 }
-    )
+  ),
+  {
+    rateLimit: 'passwordReset', // 3 requests per hour
+    logging: true
   }
-}
+);

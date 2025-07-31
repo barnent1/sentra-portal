@@ -1,20 +1,41 @@
 export * from './error-handler';
 export * from './logger';
 export * from './cors';
+export * from './rate-limit';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { withErrorHandler } from './error-handler';
 import { withLogging } from './logger';
 import { withCors, CorsOptions } from './cors';
+import { withRateLimit, RateLimitConfig, RateLimitConfigs } from './rate-limit';
+
+export interface MiddlewareOptions {
+  cors?: CorsOptions;
+  rateLimit?: RateLimitConfig | keyof typeof RateLimitConfigs;
+  logging?: boolean;
+}
 
 // Combine multiple middleware functions
 export function combineMiddleware<T extends any[], R>(
   handler: (...args: T) => Promise<R>,
-  corsOptions?: CorsOptions
+  options: MiddlewareOptions = {}
 ) {
-  // Apply middleware in order: CORS -> logging -> error handling
-  if (corsOptions) {
-    return withCors(withLogging(withErrorHandler(handler)), corsOptions);
+  let wrappedHandler = withErrorHandler(handler);
+  
+  // Apply rate limiting
+  if (options.rateLimit) {
+    wrappedHandler = withRateLimit(options.rateLimit)(wrappedHandler) as any;
   }
-  return withLogging(withErrorHandler(handler));
+  
+  // Apply logging (default true)
+  if (options.logging !== false) {
+    wrappedHandler = withLogging(wrappedHandler) as any;
+  }
+  
+  // Apply CORS
+  if (options.cors) {
+    wrappedHandler = withCors(wrappedHandler, options.cors) as any;
+  }
+  
+  return wrappedHandler;
 }

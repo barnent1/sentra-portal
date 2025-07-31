@@ -1,10 +1,10 @@
 import { NextRequest } from 'next/server';
 import { createApiHandler, ApiResponseBuilder } from '@/lib/api/base-handler';
 import { withValidation, projectSchemas } from '@/lib/middleware/validation';
-import { withLogging } from '@/lib/middleware/logger';
+import { combineMiddleware, withRateLimit } from '@/lib/middleware';
 
-// GET /api/projects - Get all projects with validation
-export const GET = withLogging(
+// GET /api/projects - Get all projects with rate limiting
+export const GET = combineMiddleware(
   withValidation(
     { query: projectSchemas.query },
     createApiHandler(async (request: NextRequest, context: any, validated: any) => {
@@ -21,11 +21,15 @@ export const GET = withLogging(
         total
       );
     })
-  )
+  ),
+  {
+    rateLimit: 'read', // 200 requests per minute
+    logging: true
+  }
 );
 
-// POST /api/projects - Create a new project with validation
-export const POST = withLogging(
+// POST /api/projects - Create a new project with stricter rate limiting
+export const POST = combineMiddleware(
   withValidation(
     { body: projectSchemas.create },
     createApiHandler(async (request: NextRequest, context: any, validated: any) => {
@@ -45,5 +49,9 @@ export const POST = withLogging(
         `/api/projects/${project.id}`
       );
     })
-  )
+  ),
+  {
+    rateLimit: 'write', // 30 requests per minute
+    logging: true
+  }
 );
