@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Add libc6-compat for Alpine compatibility
 RUN apk add --no-cache libc6-compat
@@ -20,7 +20,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:20-alpine AS production
+FROM node:24-alpine AS production
 
 # Add libc6-compat for Alpine compatibility
 RUN apk add --no-cache libc6-compat
@@ -57,7 +57,7 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
 CMD ["node", "server.js"]
 
 # Development stage
-FROM node:20-alpine AS development
+FROM node:24-alpine AS development
 
 # Add libc6-compat for Alpine compatibility
 RUN apk add --no-cache libc6-compat
