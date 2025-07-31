@@ -81,11 +81,17 @@ export const authOptions: NextAuthOptions = {
         token.email = user.email
         token.name = user.name
         token.picture = user.image
+        
+        // Generate custom JWT tokens
+        const { generateTokens } = await import("@/lib/jwt")
+        const tokens = await generateTokens(user.id, user.email!)
+        token.accessToken = tokens.accessToken
+        token.refreshToken = tokens.refreshToken
       }
       
       if (account) {
-        token.accessToken = account.access_token
-        token.refreshToken = account.refresh_token
+        token.provider = account.provider
+        token.providerAccountId = account.providerAccountId
       }
       
       return token
@@ -97,6 +103,10 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name as string
         session.user.image = token.picture as string
       }
+      
+      // Add JWT tokens to session
+      session.accessToken = token.accessToken as string
+      session.refreshToken = token.refreshToken as string
       
       return session
     },

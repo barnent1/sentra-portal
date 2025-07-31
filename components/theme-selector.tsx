@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Palette } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useThemeStore } from "@/lib/store";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,13 +27,12 @@ const themes = [
 ];
 
 export function ThemeSelector() {
-  const [selectedTheme, setSelectedTheme] = React.useState("violet");
+  const { themeColor, setThemeColor } = useThemeStore();
 
-  const handleThemeChange = (theme: string) => {
-    setSelectedTheme(theme);
-    // Update CSS variables based on theme
-    document.documentElement.setAttribute("data-theme", theme);
-  };
+  React.useEffect(() => {
+    // Apply theme on mount
+    useThemeStore.getState().applyTheme(themeColor);
+  }, [themeColor]);
 
   return (
     <DropdownMenu>
@@ -49,7 +48,7 @@ export function ThemeSelector() {
         {themes.map((theme) => (
           <DropdownMenuItem
             key={theme.value}
-            onClick={() => handleThemeChange(theme.value)}
+            onClick={() => setThemeColor(theme.value as any)}
             className="flex items-center justify-between"
           >
             <span className="flex items-center">
@@ -61,7 +60,7 @@ export function ThemeSelector() {
               />
               {theme.name}
             </span>
-            {selectedTheme === theme.value && (
+            {themeColor === theme.value && (
               <span className="text-xs">✓</span>
             )}
           </DropdownMenuItem>

@@ -15,7 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useState } from "react";
+import { useAppStore } from "@/lib/store";
 
 interface SidebarProps {
   className?: string;
@@ -36,18 +36,18 @@ const secondaryNavigation = [
 
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const { sidebarCollapsed, setSidebarCollapsed } = useAppStore();
 
   return (
     <div
       className={cn(
         "relative flex h-full flex-col border-r bg-background transition-all duration-300",
-        collapsed ? "w-16" : "w-64",
+        sidebarCollapsed ? "w-16" : "w-64",
         className
       )}
     >
       <div className="flex h-16 items-center justify-between px-4">
-        {!collapsed && (
+        {!sidebarCollapsed && (
           <Link href="/" className="flex items-center space-x-2">
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               Sentra
@@ -57,10 +57,10 @@ export function Sidebar({ className }: SidebarProps) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setCollapsed(!collapsed)}
-          className={cn(collapsed && "mx-auto")}
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          className={cn(sidebarCollapsed && "mx-auto")}
         >
-          {collapsed ? (
+          {sidebarCollapsed ? (
             <ChevronRight className="h-4 w-4" />
           ) : (
             <ChevronLeft className="h-4 w-4" />
@@ -85,10 +85,10 @@ export function Sidebar({ className }: SidebarProps) {
               <item.icon
                 className={cn(
                   "h-5 w-5 flex-shrink-0",
-                  collapsed ? "mx-auto" : "mr-3"
+                  sidebarCollapsed ? "mx-auto" : "mr-3"
                 )}
               />
-              {!collapsed && <span>{item.name}</span>}
+              {!sidebarCollapsed && <span>{item.name}</span>}
             </Link>
           );
         })}
@@ -112,17 +112,17 @@ export function Sidebar({ className }: SidebarProps) {
                 <item.icon
                   className={cn(
                     "h-5 w-5 flex-shrink-0",
-                    collapsed ? "mx-auto" : "mr-3"
+                    sidebarCollapsed ? "mx-auto" : "mr-3"
                   )}
                 />
-                {!collapsed && <span>{item.name}</span>}
+                {!sidebarCollapsed && <span>{item.name}</span>}
               </Link>
             );
           })}
         </nav>
       </div>
 
-      {!collapsed && (
+      {!sidebarCollapsed && (
         <div className="border-t p-4">
           <div className="flex items-center">
             <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
