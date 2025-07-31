@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { getCurrentUser } from "@/lib/session"
 import { SessionsList } from "@/components/auth/sessions-list"
+import { OAuthConnections } from "@/components/auth/oauth-connections"
 
 export default async function SecuritySettingsPage() {
   const user = await getCurrentUser()
@@ -26,6 +27,15 @@ export default async function SecuritySettingsPage() {
           >
             Change Password
           </a>
+        </div>
+
+        {/* Connected Accounts Section */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Connected Accounts</h2>
+          <p className="text-gray-600 mb-6">
+            Manage your connected social accounts for easy sign-in.
+          </p>
+          <OAuthConnections />
         </div>
 
         {/* Sessions Section */}
