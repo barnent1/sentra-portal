@@ -1,77 +1,80 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { createApiHandler, createSuccessResponse } from '@/lib/api/base-handler';
+import { withValidation, projectSchemas, commonSchemas } from '@/lib/middleware/validation';
+import { withLogging } from '@/lib/middleware/logger';
+import { NotFoundError } from '@/lib/middleware/error-handler';
+import { z } from 'zod';
 
 // GET /api/projects/[id] - Get a specific project
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const { id } = params;
-    
-    // TODO: Implement project fetching logic
-    return NextResponse.json({
-      status: 'success',
-      data: {
-        project: {
-          id,
-          name: 'Sample Project'
-        }
+export const GET = withLogging(
+  withValidation(
+    { params: z.object({ id: commonSchemas.id }) },
+    createApiHandler(async (request: NextRequest, context: any, validated: any) => {
+      const { id } = validated.params;
+
+      // TODO: Implement project fetching logic
+      // For now, return a mock project
+      const project = {
+        id,
+        name: 'Sample Project',
+        description: 'This is a sample project',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      // Simulate not found
+      if (id === 'notfound') {
+        throw new NotFoundError(`Project with id ${id} not found`);
       }
-    });
-  } catch (error) {
-    return NextResponse.json({
-      status: 'error',
-      error: 'Failed to fetch project'
-    }, { status: 500 });
-  }
-}
+
+      return createSuccessResponse({ project });
+    })
+  )
+);
 
 // PUT /api/projects/[id] - Update a project
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const { id } = params;
-    const body = await request.json();
-    
-    // TODO: Implement project update logic
-    return NextResponse.json({
-      status: 'success',
-      data: {
-        project: {
-          id,
-          ...body
-        }
-      }
-    });
-  } catch (error) {
-    return NextResponse.json({
-      status: 'error',
-      error: 'Failed to update project'
-    }, { status: 500 });
-  }
-}
+export const PUT = withLogging(
+  withValidation(
+    { 
+      params: z.object({ id: commonSchemas.id }),
+      body: projectSchemas.update 
+    },
+    createApiHandler(async (request: NextRequest, context: any, validated: any) => {
+      const { id } = validated.params;
+      const updateData = validated.body;
+
+      // TODO: Implement project update logic
+      const project = {
+        id,
+        name: updateData.name || 'Sample Project',
+        description: updateData.description || 'This is a sample project',
+        status: updateData.status || 'active',
+        ...updateData,
+        updatedAt: new Date().toISOString()
+      };
+
+      return createSuccessResponse({ project });
+    })
+  )
+);
 
 // DELETE /api/projects/[id] - Delete a project
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const { id } = params;
-    
-    // TODO: Implement project deletion logic
-    return NextResponse.json({
-      status: 'success',
-      data: {
-        message: `Project ${id} deleted successfully`
+export const DELETE = withLogging(
+  withValidation(
+    { params: z.object({ id: commonSchemas.id }) },
+    createApiHandler(async (request: NextRequest, context: any, validated: any) => {
+      const { id } = validated.params;
+
+      // TODO: Implement project deletion logic
+      // Check if project exists
+      if (id === 'notfound') {
+        throw new NotFoundError(`Project with id ${id} not found`);
       }
-    });
-  } catch (error) {
-    return NextResponse.json({
-      status: 'error',
-      error: 'Failed to delete project'
-    }, { status: 500 });
-  }
-}
+
+      return createSuccessResponse({ 
+        message: `Project ${id} deleted successfully` 
+      });
+    })
+  )
+);

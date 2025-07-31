@@ -56,4 +56,14 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Smooth theme transitions */
+  * {
+    @apply transition-colors duration-300;
+  }
+  
+  /* Disable transitions when switching themes */
+  .no-transitions * {
+    @apply !transition-none;
+  }
 }

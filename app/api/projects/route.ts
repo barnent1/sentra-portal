@@ -1,53 +1,49 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { 
-  createApiHandler, 
-  createSuccessResponse,
-  getPaginationParams,
-  getSortParams,
-  getFilterParams
-} from '@/lib/api/base-handler';
-import { NotFoundError, ValidationError } from '@/lib/middleware/error-handler';
+import { NextRequest } from 'next/server';
+import { createApiHandler, createSuccessResponse } from '@/lib/api/base-handler';
+import { withValidation, projectSchemas } from '@/lib/middleware/validation';
+import { withLogging } from '@/lib/middleware/logger';
 
-// GET /api/projects - Get all projects
-export const GET = createApiHandler(async (request: NextRequest) => {
-  // Extract query parameters
-  const { page, limit, offset } = getPaginationParams(request);
-  const { sortBy, sortOrder } = getSortParams(request, ['name', 'createdAt', 'updatedAt']);
-  const filters = getFilterParams(request, ['status', 'ownerId', 'teamId']);
+// GET /api/projects - Get all projects with validation
+export const GET = withLogging(
+  withValidation(
+    { query: projectSchemas.query },
+    createApiHandler(async (request: NextRequest, context: any, validated: any) => {
+      const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'desc', ...filters } = validated.query;
+      const offset = (page - 1) * limit;
 
-  // TODO: Implement project fetching logic with pagination, sorting, and filtering
-  const projects: any[] = [];
-  const total = 0;
+      // TODO: Implement project fetching logic with pagination, sorting, and filtering
+      const projects: any[] = [];
+      const total = 0;
 
-  return createSuccessResponse(
-    { projects },
-    {
-      page,
-      limit,
-      total,
-      hasMore: offset + limit < total
-    }
-  );
-});
+      return createSuccessResponse(
+        { projects },
+        {
+          page,
+          limit,
+          total,
+          hasMore: offset + limit < total
+        }
+      );
+    })
+  )
+);
 
-// POST /api/projects - Create a new project
-export const POST = createApiHandler(async (request: NextRequest) => {
-  const body = await request.json();
-  
-  // Basic validation example
-  if (!body.name || typeof body.name !== 'string') {
-    throw new ValidationError('Project name is required');
-  }
+// POST /api/projects - Create a new project with validation
+export const POST = withLogging(
+  withValidation(
+    { body: projectSchemas.create },
+    createApiHandler(async (request: NextRequest, context: any, validated: any) => {
+      const projectData = validated.body;
 
-  // TODO: Implement project creation logic
-  const project = {
-    id: Math.random().toString(36).substr(2, 9),
-    name: body.name,
-    description: body.description || '',
-    status: body.status || 'active',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
+      // TODO: Implement project creation logic
+      const project = {
+        id: Math.random().toString(36).substr(2, 9),
+        ...projectData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
 
-  return createSuccessResponse({ project });
-});
+      return createSuccessResponse({ project });
+    })
+  )
+);

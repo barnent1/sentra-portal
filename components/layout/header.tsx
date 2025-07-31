@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ThemeSelector } from "@/components/theme-selector";
 
 interface HeaderProps {
   className?: string;
@@ -53,6 +54,7 @@ export function Header({ className }: HeaderProps) {
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-2">
+            <ThemeSelector />
             <ThemeToggle />
             <Button variant="ghost" size="sm">
               Sign in
