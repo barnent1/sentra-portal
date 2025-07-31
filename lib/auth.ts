@@ -112,11 +112,26 @@ export const authOptions: NextAuthOptions = {
     },
   },
   events: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account, profile, isNewUser }) {
       console.log("User signed in:", user.email)
+      
+      // Create session in Redis for session management
+      const { SessionManager } = await import("@/lib/session-manager")
+      const metadata = {
+        ip: undefined, // Would need to be passed from request context
+        userAgent: undefined, // Would need to be passed from request context
+      }
+      
+      await SessionManager.createSession(user.id, user.email!, metadata)
     },
     async signOut({ session, token }) {
       console.log("User signed out")
+      
+      // Clean up sessions
+      if (token?.id) {
+        const { SessionManager } = await import("@/lib/session-manager")
+        await SessionManager.deleteAllUserSessions(token.id as string)
+      }
     },
   },
   debug: process.env.NODE_ENV === "development",

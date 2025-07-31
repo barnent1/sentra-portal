@@ -2,10 +2,14 @@ import { withAuth } from "next-auth/middleware"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getCorsConfig, setCorsHeaders } from "@/lib/middleware/cors"
+import { trackSessionActivity } from "@/lib/middleware/session-tracker"
 
 export default withAuth(
-  function middleware(req: NextRequest) {
+  async function middleware(req: NextRequest) {
     const response = NextResponse.next()
+    
+    // Track session activity for authenticated users
+    await trackSessionActivity(req)
     
     // Apply CORS headers to API routes
     if (req.nextUrl.pathname.startsWith('/api/')) {
